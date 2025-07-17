@@ -34,6 +34,7 @@ def analyze_data(df):
     # 4. Вывод первых 50 записей с минимальным текстом
     print("50 записей с минимальным текстом:")
     print(df_sorted[["text", "text_length"]].head(50))
+    df.drop("text_length", axis=1, inplace=True)
 
 
 def main():
