@@ -3,7 +3,6 @@ import re
 from data_load import load_data
 from data_analysis import analyze_data
 
-
 # Очистка текста
 def clean_text(text):
     """
@@ -16,6 +15,11 @@ def clean_text(text):
 
 # Загрузка данных
 def load_and_process_data():
+    """
+    Функция загружает данные, очищает текст, группирует по uid,
+    создает новый uid и сохраняет результат.
+    Возвращает обработанный датафрейм.
+    """
     df = load_data()
 
     # Группировка по ru_wiki_pageid и сохранение оригинальных uid
@@ -32,11 +36,7 @@ def load_and_process_data():
     # Удаление ru_wiki_pageid, если он не нужен
     grouped_df.drop("ru_wiki_pageid", axis=1, inplace=True)
 
-    # Поменять местами столбцы
-    grouped_df = grouped_df[['uid', 'text']]
-
     return grouped_df
-
 
 
 def check_for_duplicates(data):
@@ -57,6 +57,54 @@ def check_for_duplicates(data):
         logging.info("Дубликатов не найдено.")
         return data
 
+
+# Функция для разбиения текста примерно равные  на части но не более максимальной длины
+def split_text_by_sentences(text, max_length=30000):
+    # Разбиваем текст на предложения по знакам .!?
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    chunks = []
+    current_chunk = ""
+
+    # Определяем оптимальное количество максимальной длины
+    count_part = len(text)/max_length + 1
+    optim_max_length = len(text)//count_part
+
+    for sentence in sentences:
+        if len(current_chunk) + len(sentence) + 1 <= optim_max_length:
+            current_chunk += (sentence + " ")
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            current_chunk = sentence + " "
+
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+
+    return chunks
+
+
+# Функция разбивающая DataFrame по максимальной длине
+def process_dataframe(df, max_length=30000):
+    result = []
+
+    for _, row in df.iterrows():
+        uid = row['uid']
+        text = row['text']
+
+        if len(text) > max_length:
+            chunks = split_text_by_sentences(text, max_length)
+            for i, chunk in enumerate(chunks):
+                result.append({'uid': uid, 'text': chunk})
+        else:
+            result.append({'uid': uid, 'text': text})
+
+    df = pd.DataFrame(result)
+
+    # Создание нового uid
+    df['uid'] = range(len(df))  # Новые uid от 0 до len(grouped_df)
+
+    return df
+
 # Сохранение результата
 def save_processed_data(grouped_df):
     """
@@ -75,8 +123,10 @@ if __name__ == "__main__":
         # Загрузка и обработка данных
         processed_df = load_and_process_data()
 
-        # Проверка на дупликаты и их удаление
+        # Проверка на дубликаты и их удаление
         processed_df = check_for_duplicates(processed_df)
+
+        processed_df = process_dataframe(processed_df, max_length=20000)
 
         # Анализ данных
         analyze_data(processed_df)
