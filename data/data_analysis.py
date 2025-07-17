@@ -1,5 +1,3 @@
-# data/data_analysis.py (1-33)
-
 import pandas as pd
 from data_load import load_data
 
@@ -33,9 +31,9 @@ def analyze_data(df):
     # 3. Сортировка по возрастанию длины текста
     df_sorted = df.sort_values(by="text_length").reset_index(drop=True)
 
-    # 4. Вывод первых 10 записей с минимальным текстом
-    print("10 записей с минимальным текстом:")
-    print(df_sorted[["uid", "text", "text_length"]].head(50))
+    # 4. Вывод первых 50 записей с минимальным текстом
+    print("50 записей с минимальным текстом:")
+    print(df_sorted[["text", "text_length"]].head(50))
 
 
 def main():
