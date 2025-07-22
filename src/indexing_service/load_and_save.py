@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Константа для загрузки данных
 URL = "https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json"
-FILENAME = "data.json"
+FILENAME = "../../data/data.json"
 
 def load_data(url=URL):
     """

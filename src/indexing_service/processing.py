@@ -1,7 +1,7 @@
 import pandas as pd
 import re
-from data_load import load_data, save_data_to_csv
-from data_analysis import analyze_data
+from src.indexing_service.load_and_save import load_data, save_data_to_csv
+from src.indexing_service.analysis import analyze_data
 from joblib import Parallel, delayed
 import logging
 
@@ -51,7 +51,7 @@ def filter_dataframe_by_text_length(df: pd.DataFrame, column: str = 'text', min_
 
 
 # Загрузка и предобработка данных
-def process_data(df, column: str = 'text'):
+def process_data(df: pd.DataFrame, column: str = 'text', min_text_length=3) -> pd.DataFrame:
 
     # Проверка кодировки и битых символов
     df = check_and_fix_utf8_validity(df, column=column)
@@ -59,7 +59,7 @@ def process_data(df, column: str = 'text'):
     df = check_and_del_non_printable_chars(df, column=column)
 
     # Фильтрации строк DataFrame на основе длины текста
-    df = filter_dataframe_by_text_length(df, column = column)
+    df = filter_dataframe_by_text_length(df, column=column, min_text_length=min_text_length)
 
     logger.info("Группировка по ru_wiki_pageid")
     grouped_df = df.groupby("ru_wiki_pageid").agg(
@@ -87,7 +87,7 @@ def process_data(df, column: str = 'text'):
 
 
 # Проверка дубликатов
-def check_for_duplicates(data):
+def check_for_duplicates(data: pd.DataFrame) -> pd.DataFrame:
     """Проверка и удаление дубликатов."""
     logger.info("Проверка дубликатов")
     duplicates = data[data["text"].duplicated()]
@@ -102,9 +102,18 @@ def check_for_duplicates(data):
     return data
 
 
-# Разбиение длинного текста
-def split_text_by_sentences(text, max_length=20000):
-    """Разбиение текста на части по предложениям."""
+def split_text_by_sentences(text: str, max_length: int = 20000) -> list[str]:
+    """
+    Разбивает текст на части по предложениям с учетом ограничения максимальной длины.
+
+    :param text: Длинный текст для разбиения.
+    :param max_length: Максимальная длина чанка. По умолчанию 20000 символов.
+    :return: Список строк, содержащих части текста.
+    """
+
+    if not text:
+        return []
+
     sentences = re.split(r"(?<=[.!?])\s+", text)
 
     # Нахождение оптимального размера чанка (среднее значение близкое, но не более max_length)

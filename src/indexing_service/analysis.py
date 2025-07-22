@@ -1,5 +1,5 @@
 import pandas as pd
-from data_load import load_data
+from load_and_save import load_data
 
 
 def analyze_data(df):

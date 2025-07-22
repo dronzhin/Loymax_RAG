@@ -1,5 +1,5 @@
 import logging
-from data_load import load_data
+from src.indexing_service.load_and_save import load_data
 
 # Константа для загрузки данных
 URL = "https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json"
@@ -9,7 +9,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("data.log"),  # Логирование в файл
+        logging.FileHandler("../../data/data.log"),  # Логирование в файл
         logging.StreamHandler()  # Логирование в консоль
     ]
 )
