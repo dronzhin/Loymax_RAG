@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-from data_load import load_data
+from data_load import load_data, save_data_to_csv
 from data_analysis import analyze_data
 from joblib import Parallel, delayed
 import logging
@@ -15,7 +15,7 @@ def clean_text(text):
     return re.sub(r"[^\w\s.,—'\"«»]", "", text)
 
 
-def filter_dataframe_by_text_length(df: pd.DataFrame, column: str = 'text', min_text_length: int = 4) -> pd.DataFrame:
+def filter_dataframe_by_text_length(df: pd.DataFrame, column: str = 'text', min_text_length: int = 3) -> pd.DataFrame:
     """
     Функция для фильтрации строк DataFrame на основе длины текста в указанной колонке с логированием.
 
@@ -53,19 +53,13 @@ def filter_dataframe_by_text_length(df: pd.DataFrame, column: str = 'text', min_
 # Загрузка и предобработка данных
 def process_data(df, column: str = 'text'):
 
-    # Фильтрации строк DataFrame на основе длины текста
-    df = filter_dataframe_by_text_length(df, column = column)
-
-    analyze_data(df)
-
     # Проверка кодировки и битых символов
     df = check_and_fix_utf8_validity(df, column=column)
-    analyze_data(df)
     df = check_and_fix_replacement_chars(df, column=column)
-    analyze_data(df)
     df = check_and_del_non_printable_chars(df, column=column)
 
-    analyze_data(df)
+    # Фильтрации строк DataFrame на основе длины текста
+    df = filter_dataframe_by_text_length(df, column = column)
 
     logger.info("Группировка по ru_wiki_pageid")
     grouped_df = df.groupby("ru_wiki_pageid").agg(
@@ -76,18 +70,17 @@ def process_data(df, column: str = 'text'):
     grouped_df["text"] = Parallel(n_jobs=-1)(
         delayed(clean_text)(text) for text in grouped_df["text"]
     )
-
-    analyze_data(df)
+    logger.info("Создание новых uid")
+    grouped_df["uid"] = range(len(grouped_df))
 
     # Разбиение длинных текстов
-    df = process_dataframe(df)
+    grouped_df = process_dataframe(grouped_df)
 
     # Проверка дубликатов
-    df = check_for_duplicates(df)
+    grouped_df = check_for_duplicates(grouped_df)
 
     logger.info("Создание новых uid")
     grouped_df["uid"] = range(len(grouped_df))
-    #grouped_df.drop("ru_wiki_pageid", axis=1, inplace=True)
 
     logger.info("Обработка данных завершена")
     return grouped_df
@@ -113,10 +106,13 @@ def check_for_duplicates(data):
 def split_text_by_sentences(text, max_length=20000):
     """Разбиение текста на части по предложениям."""
     sentences = re.split(r"(?<=[.!?])\s+", text)
+
+    # Нахождение оптимального размера чанка (среднее значение близкое, но не более max_length)
+    max_optim_length = len(text)//(len(text)//max_length + 1)
     chunks, current_chunk = [], ""
 
     for sentence in sentences:
-        if len(current_chunk) + len(sentence) + 1 <= max_length:
+        if len(current_chunk) + len(sentence) + 1 <= max_optim_length:
             current_chunk += f"{sentence} "
         else:
             if current_chunk:
@@ -223,8 +219,8 @@ def check_and_fix_replacement_chars(df, column: str):
 
         df.loc[df["has_replacement"], column] = df.loc[df["has_replacement"], column].apply(fix_replacement_chars)
 
-        # Удаление временного столбца
-        df.drop("has_replacement", axis=1, inplace=True)
+    # Удаление временного столбца
+    df.drop("has_replacement", axis=1, inplace=True)
 
     return df
 
@@ -263,14 +259,6 @@ def check_and_del_non_printable_chars(df: pd.DataFrame, column: str) -> pd.DataF
     return df
 
 
-# Сохранение результата
-def save_processed_data(df):
-    """Сохранение обработанного DataFrame в CSV."""
-    logger.info("Сохранение данных в файл combined_data.csv")
-    df.to_csv("combined_data.csv", index=False, encoding="utf-8-sig")
-    logger.info("Данные успешно сохранены")
-
-
 # Основной процесс
 if __name__ == "__main__":
 
@@ -288,14 +276,9 @@ if __name__ == "__main__":
         # Обработка
         df = process_data(df)
 
-        # Проверка кодировки и битых символов
-        df = check_and_fix_utf8_validity(df, column=column)
-        df = check_and_fix_replacement_chars(df, column=column)
-        df = check_and_del_non_printable_chars(df, column=column)
-
         # Анализ и сохранение
         analyze_data(df)
-        save_processed_data(df)
+        save_data_to_csv(df)
 
     except Exception as e:
         logger.error("Критическая ошибка: %s", e, exc_info=True)

@@ -50,6 +50,13 @@ def load_data(url=URL):
         logger.error(f"Файл не найден: {e}")
         return None
 
+# Сохранение результата
+def save_data_to_csv(df):
+    """Сохранение обработанного DataFrame в CSV."""
+    logger.info("Сохранение данных в файл combined_data.csv")
+    df.to_csv("combined_data.csv", index=False, encoding="utf-8-sig")
+    logger.info("Данные успешно сохранены")
+
 if __name__ == '__main__':
     # Настройка логирования
     logging.basicConfig(
