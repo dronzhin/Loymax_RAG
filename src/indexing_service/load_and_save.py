@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 # Константа для загрузки данных
 URL = "https://raw.githubusercontent.com/vladislavneon/RuBQ/refs/heads/master/RuBQ_2.0/RuBQ_2.0_paragraphs.json"
-FILENAME = "../../data/data.json"
+
+# Определяем путь к папке data и файлу
+data_folder = os.path.join(os.path.dirname(__file__), '..', '..', 'data')
+FILENAME = os.path.join(data_folder, 'data.json')
 
 def load_data(url=URL):
     """
@@ -54,7 +57,8 @@ def load_data(url=URL):
 def save_data_to_csv(df):
     """Сохранение обработанного DataFrame в CSV."""
     logger.info("Сохранение данных в файл combined_data.csv")
-    df.to_csv("combined_data.csv", index=False, encoding="utf-8-sig")
+    file_name_csv = os.path.join(data_folder, 'combined_data.csv')
+    df.to_csv(file_name_csv, index=False, encoding="utf-8-sig")
     logger.info("Данные успешно сохранены")
 
 if __name__ == '__main__':
